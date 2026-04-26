@@ -1,0 +1,21 @@
+{
+  "name": "TKJ Construction Network",
+  "short_name": "TKJ Construction",
+  "description": "Roofing, remodeling, repairs, storm damage support, commercial construction, and maintenance plans in Columbus GA and Phenix City AL.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050608",
+  "theme_color": "#0b1020",
+  "icons": [
+    {
+      "src": "assets/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
