@@ -814,14 +814,14 @@
       </div>
     </section>
 
-    <!-- Contact form uses FormSubmit placeholder and click-to-call/text/email links. -->
+    <!-- Estimate form prepares an email draft in the visitor's own email app. -->
     <section class="section-pad contact-section" id="contact">
       <div class="container contact-grid">
         <div class="contact-copy reveal">
           <p class="eyebrow">Contact</p>
           <h2>Get your free estimate from TKJ Construction Network.</h2>
           <p>
-            Share your project type, property location and target schedule. Call or text 706-888-0837, or send an estimate request below. Final quotes depend on scope, measurements and materials.
+            Share your project type, property location and target schedule. Call or text 706-888-0837, or prepare an estimate email below. Final quotes depend on scope, measurements and materials.
           </p>
           <div class="contact-actions">
             <a class="btn btn-gold" href="tel:+17068880837">Call Now</a>
@@ -830,6 +830,7 @@
           </div>
           <div class="contact-info">
             <p><strong>Service Area:</strong> Columbus, GA • Phenix City, AL • Surrounding Areas</p>
+            <p><strong>Hours:</strong> Monday–Saturday, 9:00 AM–5:00 PM; Sunday closed.</p>
             <p><strong>Phone:</strong> <a href="tel:+17068880837">706-888-0837</a></p>
             <p><strong>Email:</strong> <a
                 href="mailto:tkconstructionnetwork@gmail.com">tkconstructionnetwork@gmail.com</a></p>
@@ -837,10 +838,8 @@
           <a class="storm-link" href="#contact">Emergency storm damage request</a>
         </div>
 
-        <form class="contact-form reveal" action="https://formsubmit.co/tkconstructionnetwork@gmail.com" method="POST"
-          enctype="multipart/form-data">
-          <input type="hidden" name="_subject" value="New TKJ Construction Network Estimate Request" />
-          <input type="hidden" name="_captcha" value="false" />
+        <form class="contact-form reveal" id="estimate-email-form">
+          <p>This form opens a draft in your email app. Review it and press Send there. Prefer a quicker option? Call or text 706-888-0837.</p>
           <div class="form-grid">
             <label>Name<input name="name" type="text" autocomplete="name" required /></label>
             <label>Phone<input name="phone" type="tel" autocomplete="tel" required /></label>
@@ -868,14 +867,12 @@
             </label>
             <label class="full-field">Message<textarea name="message" rows="5"
                 placeholder="Tell us what happened, what you need, and your timeline."></textarea></label>
-            <label class="upload-field full-field">
-              Upload Photos
-              <input name="photos" type="file" accept="image/*" multiple />
-              <span>Optional: attach photos of the work area. You can also text project photos to 706-888-0837.</span>
-            </label>
+            <p class="full-field">Have project photos? Attach them to your email draft or text them to 706-888-0837.</p>
           </div>
-          <button class="btn btn-blue full-width" type="submit">Request My Free Estimate</button>
-          <p>Submitting a request does not book work or commit you to a purchase. If you do not receive a response, call or text 706-888-0837.</p>
+          <button class="btn btn-blue full-width" type="submit">Prepare Estimate Email</button>
+          <p id="estimate-email-status" role="status" aria-live="polite"></p>
+          <noscript><p>Email <a href="mailto:tkconstructionnetwork@gmail.com">tkconstructionnetwork@gmail.com</a> with your project details, or call 706-888-0837.</p></noscript>
+          <p>Preparing this draft does not send a request or book work. If no email app opens, call or text 706-888-0837.</p>
         </form>
       </div>
     </section>
@@ -925,6 +922,29 @@
     <a class="float-estimate" href="#contact">Get Estimate</a>
   </div>
 
+  <script>
+    document.getElementById("estimate-email-form").addEventListener("submit", function(event) {
+      event.preventDefault();
+      const fields = new FormData(this);
+      const lines = [
+        "Project: " + (fields.get("project_type") || ""),
+        "Name: " + (fields.get("name") || ""),
+        "Phone: " + (fields.get("phone") || ""),
+        "Email: " + (fields.get("email") || ""),
+        "Project city / ZIP: " + (fields.get("location") || ""),
+        "Target schedule: " + (fields.get("target_schedule") || ""),
+        "",
+        "Project details:",
+        String(fields.get("message") || "")
+      ];
+      const mailto = "mailto:tkconstructionnetwork@gmail.com?subject=" +
+        encodeURIComponent("TKJ free estimate request: " + (fields.get("project_type") || "Project")) +
+        "&body=" + encodeURIComponent(lines.join("\n"));
+      document.getElementById("estimate-email-status").textContent =
+        "Review and send the draft in your email app. Nothing has been sent by this website. If no draft opens, call or text 706-888-0837.";
+      window.location.href = mailto;
+    });
+  </script>
   <script src="script.js"></script>
 </body>
 
