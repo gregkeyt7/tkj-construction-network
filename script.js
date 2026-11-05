@@ -1,301 +1,39 @@
-/*
-  TKJ Construction Network JavaScript
-  Handles navigation, animations, estimate calculator, FAQ, before/after slider,
-  image fallbacks, conversion nudges, and UX polish.
-*/
-
-document.addEventListener("DOMContentLoaded", () => {
-  const navToggle = document.querySelector(".nav-toggle");
-  const navMenu = document.querySelector(".nav-menu");
-  const navLinks = document.querySelectorAll(".nav-menu a");
-  const year = document.getElementById("year");
-
-  if (year) year.textContent = new Date().getFullYear();
-
-  setupMobileNavigation(navToggle, navMenu, navLinks);
-  setupRevealAnimations();
-  setupEstimateCalculator();
-  setupFaqAccordion();
-  setupBeforeAfterSlider();
-  setupImageFallbacks();
-  setupScrollState();
-});
-
-/* ================================
-   Mobile Navigation
-================================ */
-
-function setupMobileNavigation(navToggle, navMenu, navLinks) {
-  if (!navToggle || !navMenu) return;
-
-  const closeMenu = () => {
-    navMenu.classList.remove("active");
-    navToggle.classList.remove("active");
-    navToggle.setAttribute("aria-expanded", "false");
-  };
-
-  navToggle.addEventListener("click", (event) => {
-    event.stopPropagation();
-
-    const isOpen = navMenu.classList.toggle("active");
-    navToggle.classList.toggle("active", isOpen);
-    navToggle.setAttribute("aria-expanded", String(isOpen));
-  });
-
-  navLinks.forEach((link) => {
-    link.addEventListener("click", closeMenu);
-  });
-
-  document.addEventListener("click", (event) => {
-    if (
-      navMenu.classList.contains("active") &&
-      !navMenu.contains(event.target) &&
-      !navToggle.contains(event.target)
-    ) {
-      closeMenu();
-    }
-  });
-
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") closeMenu();
-  });
-
-  window.addEventListener("resize", () => {
-    if (window.innerWidth >= 1080) closeMenu();
-  });
+'use strict';
+const menu = document.querySelector('.menu-toggle');
+const nav = document.getElementById('main-nav');
+const mobile = window.matchMedia('(max-width: 900px)');
+function syncMenu(){nav.hidden=mobile.matches;menu.setAttribute('aria-expanded','false');}
+syncMenu(); mobile.addEventListener('change',syncMenu);
+menu.addEventListener('click',()=>{nav.hidden=!nav.hidden;menu.setAttribute('aria-expanded',String(!nav.hidden));});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&mobile.matches&&!nav.hidden){nav.hidden=true;menu.setAttribute('aria-expanded','false');menu.focus();}});
+const oldRoutes={'#protection-plan':'/roofing#roof-protection','#singleshingles':'/roofing#singleshingles','#calculator':'/estimate-calculator','#gallery':'/services','#about':'/about'};
+if((location.pathname==='/'||location.pathname==='/index.html')&&oldRoutes[location.hash])location.replace(oldRoutes[location.hash]);
+const projectForm=document.getElementById('project-form');
+if(projectForm){
+ const query=new URLSearchParams(location.search);
+ for(const key of ['market','service','plan']){const el=projectForm.elements.namedItem(key);const val=query.get(key);if(val&&el){if(el.tagName!=='SELECT'||[...el.options].some(o=>o.value===val))el.value=val.slice(0,100);}}
+ if(query.get('plan'))projectForm.elements.namedItem('service').value='HomeGuard';
+ projectForm.addEventListener('submit',e=>{
+  e.preventDefault();if(!projectForm.reportValidity())return;
+  const data=new FormData(projectForm);const fields=[['Name','name'],['Phone','phone'],['Email','email'],['City / ZIP','city'],['Property type','market'],['Service','service'],['Preferred schedule','schedule'],['HomeGuard plan','plan'],['Project details','message']];
+  const message=fields.map(([label,key])=>label+': '+(String(data.get(key)||'').trim()||'Not specified')).join('\n\n');
+  document.getElementById('request-summary').textContent=message;
+  document.getElementById('email-request').href='mailto:tkconstructionnetwork@gmail.com?subject='+encodeURIComponent('TKJ project request - '+data.get('service'))+'&body='+encodeURIComponent(message);
+  document.getElementById('request-review').hidden=false;
+ });
+ document.getElementById('copy-request').addEventListener('click',async()=>{
+  try{await navigator.clipboard.writeText(document.getElementById('request-summary').textContent);document.getElementById('copy-status').textContent='Copied. Paste into your email or text message and send it to TKJ. Nothing has been sent by this page.';}
+  catch{document.getElementById('copy-status').textContent='Please select and copy the request text above, or call TKJ at 706-888-0837.';}
+ });
 }
-
-/* ================================
-   Reveal Animations
-================================ */
-
-function setupRevealAnimations() {
-  const revealItems = document.querySelectorAll(".reveal");
-
-  if (!revealItems.length) return;
-
-  if (!("IntersectionObserver" in window)) {
-    revealItems.forEach((item) => item.classList.add("visible"));
-    return;
-  }
-
-  const revealObserver = new IntersectionObserver(
-    (entries, observer) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add("visible");
-          observer.unobserve(entry.target);
-        }
-      });
-    },
-    { threshold: 0.14 }
-  );
-
-  revealItems.forEach((item) => revealObserver.observe(item));
-}
-
-/* ================================
-   Estimate Calculator
-================================ */
-
-function setupEstimateCalculator() {
-  const form = document.getElementById("estimate-calculator");
-  const result = document.getElementById("estimate-result");
-
-  if (!form || !result) return;
-
-  const baseRates = {
-    "roof-repair": { base: 450, squareFeet: 0.4, rooms: 0, roofSquares: 85, linearFeet: 3 },
-    "roof-replacement": { base: 4500, squareFeet: 0.2, rooms: 0, roofSquares: 430, linearFeet: 0 },
-    "interior-remodel": { base: 2500, squareFeet: 26, rooms: 900, roofSquares: 0, linearFeet: 0 },
-    "exterior-remodel": { base: 2200, squareFeet: 18, rooms: 0, roofSquares: 0, linearFeet: 22 },
-    painting: { base: 850, squareFeet: 2.4, rooms: 325, roofSquares: 0, linearFeet: 0 },
-    flooring: { base: 1200, squareFeet: 7.5, rooms: 250, roofSquares: 0, linearFeet: 0 },
-    drywall: { base: 900, squareFeet: 3.8, rooms: 350, roofSquares: 0, linearFeet: 0 },
-    commercial: { base: 6500, squareFeet: 32, rooms: 600, roofSquares: 250, linearFeet: 18 }
-  };
-
-  const qualityMultipliers = {
-    economy: 0.9,
-    standard: 1,
-    premium: 1.28
-  };
-
-  const urgencyMultipliers = {
-    normal: 1,
-    rush: 1.18
-  };
-
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
-
-    const projectType = getValue("project-type");
-    const squareFeet = getNumber("square-feet");
-    const rooms = getNumber("rooms");
-    const roofSquares = getNumber("roof-squares");
-    const linearFeet = getNumber("linear-feet");
-    const materialQuality = getValue("material-quality");
-    const urgency = getValue("urgency");
-
-    const rate = baseRates[projectType] || baseRates["roof-repair"];
-
-    let estimate =
-      rate.base +
-      squareFeet * rate.squareFeet +
-      rooms * rate.rooms +
-      roofSquares * rate.roofSquares +
-      linearFeet * rate.linearFeet;
-
-    estimate *= qualityMultipliers[materialQuality] || 1;
-    estimate *= urgencyMultipliers[urgency] || 1;
-
-    const low = Math.max(350, Math.round((estimate * 0.82) / 50) * 50);
-    const high = Math.max(low + 250, Math.round((estimate * 1.28) / 50) * 50);
-
-    showEstimateResult(result, low, high);
-
-    setTimeout(() => {
-      document.querySelector("#contact")?.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
-    }, 2200);
-  });
-}
-
-function showEstimateResult(result, low, high) {
-  result.innerHTML = `
-    <span>Rough planning range:</span>
-    <strong>${formatCurrency(low)} - ${formatCurrency(high)}</strong>
-    <small>Get an exact free estimate below.</small>
-  `;
-
-  result.classList.add("estimate-ready");
-
-  setTimeout(() => {
-    result.classList.remove("estimate-ready");
-  }, 1400);
-}
-
-function getValue(id) {
-  const element = document.getElementById(id);
-  return element ? element.value : "";
-}
-
-function getNumber(id) {
-  const element = document.getElementById(id);
-  const value = element ? Number(element.value) : 0;
-  return Number.isFinite(value) && value > 0 ? value : 0;
-}
-
-function formatCurrency(value) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0
-  }).format(value);
-}
-
-/* ================================
-   FAQ Accordion
-================================ */
-
-function setupFaqAccordion() {
-  const items = document.querySelectorAll(".faq-item");
-
-  if (!items.length) return;
-
-  items.forEach((item) => {
-    item.addEventListener("click", () => {
-      const panel = item.nextElementSibling;
-      const icon = item.querySelector("strong");
-      const isOpen = item.getAttribute("aria-expanded") === "true";
-
-      items.forEach((otherItem) => {
-        const otherPanel = otherItem.nextElementSibling;
-        const otherIcon = otherItem.querySelector("strong");
-
-        otherItem.setAttribute("aria-expanded", "false");
-
-        if (otherPanel) otherPanel.style.maxHeight = "0";
-        if (otherIcon) otherIcon.textContent = "+";
-      });
-
-      if (!isOpen) {
-        item.setAttribute("aria-expanded", "true");
-
-        if (panel) panel.style.maxHeight = `${panel.scrollHeight}px`;
-        if (icon) icon.textContent = "−";
-      }
-    });
-  });
-}
-
-/* ================================
-   Before / After Slider
-================================ */
-
-function setupBeforeAfterSlider() {
-  const range = document.getElementById("before-after-range");
-  const afterWrap = document.getElementById("after-wrap");
-
-  if (!range || !afterWrap) return;
-
-  const updateSlider = () => {
-    afterWrap.style.width = `${range.value}%`;
-  };
-
-  range.addEventListener("input", updateSlider);
-  range.addEventListener("change", updateSlider);
-
-  updateSlider();
-}
-
-/* ================================
-   Image Fallbacks
-================================ */
-
-function setupImageFallbacks() {
-  const fallbacks = {
-    "assets/hero.jpg": "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1600&q=80",
-    "assets/roofing.jpg": "https://images.unsplash.com/photo-1632759145351-1d592919f522?auto=format&fit=crop&w=1600&q=80",
-    "assets/remodeling.jpg": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1600&q=80",
-    "assets/commercial.jpg": "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=1600&q=80",
-    "assets/interior.jpg": "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1600&q=80",
-    "assets/exterior.jpg": "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1600&q=80",
-    "assets/flooring.jpg": "https://images.unsplash.com/photo-1581858726788-75bc0f6a952d?auto=format&fit=crop&w=1600&q=80"
-  };
-
-  document.querySelectorAll("img").forEach((image) => {
-    image.addEventListener(
-      "error",
-      () => {
-        const fallback = fallbacks[image.getAttribute("src")];
-
-        if (fallback) {
-          image.src = fallback;
-        } else {
-          image.style.display = "none";
-        }
-      },
-      { once: true }
-    );
-  });
-}
-
-/* ================================
-   Scroll-Based Conversion Polish
-================================ */
-
-function setupScrollState() {
-  const updateScrollState = () => {
-    if (window.scrollY > 700) {
-      document.body.classList.add("scrolled");
-    } else {
-      document.body.classList.remove("scrolled");
-    }
-  };
-
-  updateScrollState();
-  window.addEventListener("scroll", updateScrollState, { passive: true });
+const budget=document.getElementById('budget-form');
+if(budget){
+ const scopes={walls:{unit:'Measured wall square feet',low:1.85,high:2.75,min:450,note:'Two finish coats on sound, prepared walls up to 9 ft. Ceiling, trim, doors, primer and extensive repairs are separate.'},lvp:{unit:'Net floor square feet',low:8.75,high:10.5,min:750,note:'Standard click LVP material and installation. Demolition, leveling, moisture mitigation, trim and transitions are separate.'},drywall:{unit:'Board surface square feet',low:4.5,high:6,min:750,note:'New board hung and finished to Level 4. Demolition, framing, insulation, texture, primer and paint are separate.'},repair:{unit:'Paid worker-hours',low:70,high:95,min:225,note:'General craft repair labor only. Materials, specialty trades and access equipment are separate.'}};
+ const select=document.getElementById('budget-scope');
+ select.addEventListener('change',()=>{document.getElementById('quantity-label').textContent=scopes[select.value].unit;document.getElementById('budget-result').replaceChildren();});
+ budget.addEventListener('submit',e=>{e.preventDefault();if(!budget.reportValidity())return;const q=Number(budget.elements.quantity.value);const s=scopes[select.value];if(!Number.isFinite(q)||q<1||q>100000)return;
+ const dollars=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Math.ceil(n/5)*5);
+ const title=document.createElement('p');title.textContent=dollars(Math.max(s.min,q*s.low))+'–'+dollars(Math.max(s.min,q*s.high))+' planning range';
+ const note=document.createElement('p');note.textContent=s.note+' Confirm mobilization and project-specific conditions in your written quote.';document.getElementById('budget-result').replaceChildren(title,note);
+ });
 }
