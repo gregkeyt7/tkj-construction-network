@@ -6,7 +6,7 @@ function syncMenu(){nav.hidden=mobile.matches;menu.setAttribute('aria-expanded',
 syncMenu(); mobile.addEventListener('change',syncMenu);
 menu.addEventListener('click',()=>{nav.hidden=!nav.hidden;menu.setAttribute('aria-expanded',String(!nav.hidden));});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&mobile.matches&&!nav.hidden){nav.hidden=true;menu.setAttribute('aria-expanded','false');menu.focus();}});
-const oldRoutes={'#protection-plan':'/roofing#roof-protection','#singleshingles':'/roofing#singleshingles','#calculator':'/estimate-calculator','#gallery':'/services','#about':'/about'};
+const oldRoutes={'#protection-plan':'/homeguard','#singleshingles':'/services','#calculator':'/estimate-calculator','#gallery':'/services','#about':'/about'};
 if((location.pathname==='/'||location.pathname==='/index.html')&&oldRoutes[location.hash])location.replace(oldRoutes[location.hash]);
 const projectForm=document.getElementById('project-form');
 if(projectForm){

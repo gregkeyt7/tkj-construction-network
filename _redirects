@@ -1,4 +1,6 @@
 /protection-plan /homeguard 301
 /home-guard /homeguard 301
 /protection-plans /homeguard 301
-/singleshingles /roofing#singleshingles 301
+/roofing /services 301
+/roofing.html /services 301
+/singleshingles /services 301
